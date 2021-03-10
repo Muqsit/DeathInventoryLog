@@ -1,0 +1,15 @@
+--- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/Muqsit/DeathInventoryLog
+build-by-default: true
+branches:
+- master
+projects:
+  DeathInventoryLog:
+    path: ""
+    libs:
+      - src: poggit/libasynql/libasynql
+        version: ^3.4.0
+        branch: "4.0"
+      - src: muqsit/InvMenu/InvMenu
+        version: ^4.1.0
+        branch: "4.0"
+...
