@@ -1,0 +1,11 @@
+name: DeathInventoryLog
+main: muqsit\deathinventorylog\Loader
+api: 4.0.0
+version: 0.0.1
+permissions:
+  deathinventorylog.command:
+    default: op
+commands:
+  deathinventorylog:
+    aliases: ["dil"]
+    permission: deathinventorylog.command

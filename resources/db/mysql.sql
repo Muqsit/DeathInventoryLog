@@ -1,0 +1,33 @@
+-- #!sqlite
+-- #{ deathinventorylog
+
+-- #  { init
+CREATE TABLE IF NOT EXISTS death_inventory_log(
+  id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  uuid BINARY(16) NOT NULL,
+  time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+  inventory BLOB NOT NULL,
+  armor_inventory BLOB NOT NULL
+);
+-- #  }
+
+-- #  { retrieve
+-- #    :id int
+SELECT id, uuid, UNIX_TIMESTAMP(time) AS time, inventory, armor_inventory FROM death_inventory_log WHERE id=:id;
+-- #  }
+
+-- #  { retrieve_player
+-- #    :uuid string
+-- #    :offset int
+-- #    :length int
+SELECT id, uuid, UNIX_TIMESTAMP(time) AS time, inventory, armor_inventory FROM death_inventory_log WHERE uuid=:uuid ORDER BY id DESC LIMIT :offset, :length;
+-- #  }
+
+-- #  { save
+-- #    :uuid string
+-- #    :inventory string
+-- #    :armor_inventory string
+INSERT INTO death_inventory_log(uuid, inventory, armor_inventory) VALUES(:uuid, :inventory, :armor_inventory);
+-- #  }
+
+-- #}
