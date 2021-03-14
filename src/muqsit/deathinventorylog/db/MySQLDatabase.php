@@ -44,8 +44,8 @@ final class MySQLDatabase implements Database{
 	public function store(UUID $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [
 			"uuid" => $player->toBinary(),
-			"inventory" => InventorySerializer::serialize($inventory->getInventoryContents()),
-			"armor_inventory" => InventorySerializer::serialize($inventory->getArmorContents())
+			"inventory" => base64_encode(InventorySerializer::serialize($inventory->getInventoryContents())),
+			"armor_inventory" => base64_encode(InventorySerializer::serialize($inventory->getArmorContents()))
 		], static function(int $insert_id, int $affected_rows) use($callback) : void{ $callback($insert_id); });
 	}
 

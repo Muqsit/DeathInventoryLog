@@ -27,7 +27,7 @@ SELECT id, uuid, UNIX_TIMESTAMP(time) AS time, inventory, armor_inventory FROM d
 -- #    :uuid string
 -- #    :inventory string
 -- #    :armor_inventory string
-INSERT INTO death_inventory_log(uuid, inventory, armor_inventory) VALUES(:uuid, :inventory, :armor_inventory);
+INSERT INTO death_inventory_log(uuid, inventory, armor_inventory) VALUES(:uuid, FROM_BASE64(:inventory), FROM_BASE64(:armor_inventory));
 -- #  }
 
 -- #}
