@@ -6,9 +6,10 @@ namespace muqsit\deathinventorylog\translator;
 
 use Closure;
 use muqsit\deathinventorylog\Loader;
-use pocketmine\uuid\UUID;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
+use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 
 final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 
@@ -24,7 +25,7 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 		$this->connector->waitAll();
 	}
 
-	public function store(UUID $uuid, string $gamertag) : void{
+	public function store(UuidInterface $uuid, string $gamertag) : void{
 		$this->connector->executeInsert("deathinventorylog.store_translation", [
 			"uuid" => $uuid->toString(),
 			"gamertag" => $gamertag
@@ -33,11 +34,11 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 
 	public function translateUuids(array $uuids, Closure $callback) : void{
 		$this->connector->executeSelect("deathinventorylog.translate_uuids", [
-			"uuids" => "'" . implode("', '", array_map(static function(UUID $uuid) : string{ return $uuid->toString(); }, $uuids)) . "'"
+			"uuids" => "'" . implode("', '", array_map(static function(UuidInterface $uuid) : string{ return $uuid->toString(); }, $uuids)) . "'"
 		], static function(array $rows) use($callback) : void{
 			$result = [];
 			foreach($rows as $row){
-				$result[UUID::fromString($row["uuid"])->toBinary()] = $row["gamertag"];
+				$result[Uuid::fromString($row["uuid"])->getBytes()] = $row["gamertag"];
 			}
 			$callback($result);
 		});
@@ -49,7 +50,7 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 		], static function(array $rows) use($callback) : void{
 			$result = [];
 			foreach($rows as $row){
-				$result[strtolower($row["gamertag"])] = UUID::fromString($row["uuid"])->toBinary();
+				$result[strtolower($row["gamertag"])] = Uuid::fromString($row["uuid"])->getBytes();
 			}
 			$callback($result);
 		});

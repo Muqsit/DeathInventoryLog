@@ -20,7 +20,7 @@ use pocketmine\inventory\ArmorInventory;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\TextFormat;
-use pocketmine\uuid\UUID;
+use Ramsey\Uuid\Uuid;
 
 final class Loader extends PluginBase implements Listener{
 
@@ -87,7 +87,7 @@ final class Loader extends PluginBase implements Listener{
 							if($translation !== false){
 								static $per_page = 10;
 								$offset = ($page - 1) * $per_page;
-								$this->database->retrievePlayer(UUID::fromBinary($translation), $offset, $per_page, static function(array $entries) use($offset, $page, $sender) : void{
+								$this->database->retrievePlayer(Uuid::fromBytes($translation), $offset, $per_page, static function(array $entries) use($offset, $page, $sender) : void{
 									/** @var DeathInventoryLog[] $entries */
 									if(count($entries) > 0){
 										$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;

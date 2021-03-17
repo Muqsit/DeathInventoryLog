@@ -6,7 +6,7 @@ namespace muqsit\deathinventorylog\db;
 
 use Closure;
 use muqsit\deathinventorylog\Loader;
-use pocketmine\uuid\UUID;
+use Ramsey\Uuid\UuidInterface;
 
 interface Database{
 
@@ -20,13 +20,13 @@ interface Database{
 	public static function create(Loader $plugin, array $configuration) : self;
 
 	/**
-	 * @param UUID $player
+	 * @param UuidInterface $player
 	 * @param DeathInventory $inventory
 	 * @param Closure $callback
 	 *
 	 * @phpstan-param Closure(int) : void $callback
 	 */
-	public function store(UUID $player, DeathInventory $inventory, Closure $callback) : void;
+	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void;
 
 	/**
 	 * @param int $id
@@ -37,14 +37,14 @@ interface Database{
 	public function retrieve(int $id, Closure $callback) : void;
 
 	/**
-	 * @param UUID $player
+	 * @param UuidInterface $player
 	 * @param int $offset
 	 * @param int $length
 	 * @param Closure $callback
 	 *
 	 * @phpstan-param Closure(DeathInventoryLog[]) : void $callback
 	 */
-	public function retrievePlayer(UUID $player, int $offset, int $length, Closure $callback) : void;
+	public function retrievePlayer(UuidInterface $player, int $offset, int $length, Closure $callback) : void;
 
 	public function close() : void;
 }

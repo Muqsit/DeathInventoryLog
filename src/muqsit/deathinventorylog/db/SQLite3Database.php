@@ -7,9 +7,10 @@ namespace muqsit\deathinventorylog\db;
 use Closure;
 use muqsit\deathinventorylog\Loader;
 use muqsit\deathinventorylog\util\InventorySerializer;
-use pocketmine\uuid\UUID;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
+use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 
 final class SQLite3Database implements Database{
 
@@ -36,9 +37,9 @@ final class SQLite3Database implements Database{
 		$this->connector->waitAll();
 	}
 
-	public function store(UUID $player, DeathInventory $inventory, Closure $callback) : void{
+	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [
-			"uuid" => $player->toBinary(),
+			"uuid" => $player->getBytes(),
 			"time" => time(),
 			"inventory" => InventorySerializer::serialize($inventory->getInventoryContents()),
 			"armor_inventory" => InventorySerializer::serialize($inventory->getArmorContents())
@@ -51,7 +52,7 @@ final class SQLite3Database implements Database{
 			if($row !== false){
 				$callback(new DeathInventoryLog(
 					$row["id"],
-					UUID::fromBinary($row["uuid"]),
+					Uuid::fromBytes($row["uuid"]),
 					new DeathInventory(
 						InventorySerializer::deSerialize($row["inventory"]),
 						InventorySerializer::deSerialize($row["armor_inventory"])
@@ -64,9 +65,9 @@ final class SQLite3Database implements Database{
 		});
 	}
 
-	public function retrievePlayer(UUID $player, int $offset, int $length, Closure $callback) : void{
+	public function retrievePlayer(UuidInterface $player, int $offset, int $length, Closure $callback) : void{
 		$this->connector->executeSelect("deathinventorylog.retrieve_player", [
-			"uuid" => $player->toBinary(),
+			"uuid" => $player->getBytes(),
 			"offset" => $offset,
 			"length" => $length
 		], static function(array $rows) use($callback) : void{
@@ -74,7 +75,7 @@ final class SQLite3Database implements Database{
 			foreach($rows as $row){
 				$result[] = new DeathInventoryLog(
 					$row["id"],
-					UUID::fromBinary($row["uuid"]),
+					Uuid::fromBytes($row["uuid"]),
 					new DeathInventory(
 						InventorySerializer::deSerialize($row["inventory"]),
 						InventorySerializer::deSerialize($row["armor_inventory"])

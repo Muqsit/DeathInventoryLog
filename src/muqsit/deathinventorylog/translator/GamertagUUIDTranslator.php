@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace muqsit\deathinventorylog\translator;
 
 use Closure;
-use pocketmine\uuid\UUID;
+use Ramsey\Uuid\UuidInterface;
 
 interface GamertagUUIDTranslator{
 
-	public function store(UUID $uuid, string $gamertag) : void;
+	public function store(UuidInterface $uuid, string $gamertag) : void;
 
 	/**
-	 * @param UUID[] $uuids
+	 * @param UuidInterface[] $uuids
 	 * @param Closure $callback
 	 *
 	 * @phpstan-param Closure(array<string, string>) : void $callback

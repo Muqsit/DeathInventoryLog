@@ -7,9 +7,10 @@ namespace muqsit\deathinventorylog\db;
 use Closure;
 use muqsit\deathinventorylog\Loader;
 use muqsit\deathinventorylog\util\InventorySerializer;
-use pocketmine\uuid\UUID;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
+use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 
 final class MySQLDatabase implements Database{
 
@@ -41,9 +42,9 @@ final class MySQLDatabase implements Database{
 		$this->connector->waitAll();
 	}
 
-	public function store(UUID $player, DeathInventory $inventory, Closure $callback) : void{
+	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [
-			"uuid" => base64_encode($player->toBinary()),
+			"uuid" => base64_encode($player->getBytes()),
 			"inventory" => base64_encode(InventorySerializer::serialize($inventory->getInventoryContents())),
 			"armor_inventory" => base64_encode(InventorySerializer::serialize($inventory->getArmorContents()))
 		], static function(int $insert_id, int $affected_rows) use($callback) : void{ $callback($insert_id); });
@@ -55,7 +56,7 @@ final class MySQLDatabase implements Database{
 			if($row !== false){
 				$callback(new DeathInventoryLog(
 					$row["id"],
-					UUID::fromBinary($row["uuid"]),
+					Uuid::fromBytes($row["uuid"]),
 					new DeathInventory(
 						InventorySerializer::deSerialize($row["inventory"]),
 						InventorySerializer::deSerialize($row["armor_inventory"])
@@ -68,9 +69,9 @@ final class MySQLDatabase implements Database{
 		});
 	}
 
-	public function retrievePlayer(UUID $player, int $offset, int $length, Closure $callback) : void{
+	public function retrievePlayer(UuidInterface $player, int $offset, int $length, Closure $callback) : void{
 		$this->connector->executeSelect("deathinventorylog.retrieve_player", [
-			"uuid" => $player->toBinary(),
+			"uuid" => $player->getBytes(),
 			"offset" => $offset,
 			"length" => $length
 		], static function(array $rows) use($callback) : void{
@@ -78,7 +79,7 @@ final class MySQLDatabase implements Database{
 			foreach($rows as $row){
 				$result[] = new DeathInventoryLog(
 					$row["id"],
-					UUID::fromBinary($row["uuid"]),
+					Uuid::fromBytes($row["uuid"]),
 					new DeathInventory(
 						InventorySerializer::deSerialize($row["inventory"]),
 						InventorySerializer::deSerialize($row["armor_inventory"])

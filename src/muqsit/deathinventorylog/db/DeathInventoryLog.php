@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace muqsit\deathinventorylog\db;
 
-use pocketmine\uuid\UUID;
+use Ramsey\Uuid\UuidInterface;
 
 final class DeathInventoryLog{
 
 	/** @var int */
 	private $id;
 
-	/** @var UUID */
+	/** @var UuidInterface */
 	private $uuid;
 
 	/** @var DeathInventory */
@@ -20,7 +20,7 @@ final class DeathInventoryLog{
 	/** @var int */
 	private $timestamp;
 
-	public function __construct(int $id, UUID $uuid, DeathInventory $inventory, int $timestamp){
+	public function __construct(int $id, UuidInterface $uuid, DeathInventory $inventory, int $timestamp){
 		$this->id = $id;
 		$this->uuid = $uuid;
 		$this->inventory = $inventory;
@@ -31,7 +31,7 @@ final class DeathInventoryLog{
 		return $this->id;
 	}
 
-	public function getUuid() : UUID{
+	public function getUuid() : UuidInterface{
 		return $this->uuid;
 	}
 
