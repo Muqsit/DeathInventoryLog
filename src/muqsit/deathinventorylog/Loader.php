@@ -24,11 +24,8 @@ use Ramsey\Uuid\Uuid;
 
 final class Loader extends PluginBase implements Listener{
 
-	/** @var Database */
-	private $database;
-
-	/** @var GamertagUUIDTranslator|null */
-	private $translator;
+	private Database $database;
+	private ?GamertagUUIDTranslator $translator = null;
 
 	protected function onEnable() : void{
 		if(!InvMenuHandler::isRegistered()){

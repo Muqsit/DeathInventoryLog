@@ -13,14 +13,14 @@ final class DeathInventory{
 	 *
 	 * @phpstan-var array<int, Item>
 	 */
-	private $inventory_contents;
+	private array $inventory_contents;
 
 	/**
 	 * @var Item[]
 	 *
 	 * @phpstan-var array<int, Item>
 	 */
-	private $armor_contents;
+	private array $armor_contents;
 
 	/**
 	 * @param Item[] $inventory_contents

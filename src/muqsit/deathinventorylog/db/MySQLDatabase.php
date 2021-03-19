@@ -25,8 +25,7 @@ final class MySQLDatabase implements Database{
 		return new self($plugin, $configuration["host"], $configuration["username"], $configuration["password"], $configuration["schema"]);
 	}
 
-	/** @var DataConnector */
-	private $connector;
+	private DataConnector $connector;
 
 	private function __construct(Loader $plugin, string $host, string $username, string $password, string $schema){
 		$this->connector = libasynql::create($plugin, [

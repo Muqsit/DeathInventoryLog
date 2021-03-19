@@ -13,8 +13,7 @@ use Ramsey\Uuid\UuidInterface;
 
 final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 
-	/** @var DataConnector */
-	private $connector;
+	private DataConnector $connector;
 
 	public function __construct(Loader $plugin){
 		$this->connector = libasynql::create($plugin, [

@@ -13,7 +13,7 @@ final class DatabaseFactory{
 	 *
 	 * @phpstan-var array<string, class-string<Database>>
 	 */
-	private $databases = [];
+	private array $databases = [];
 
 	public function __construct(){
 		$this->register("mysql", MySQLDatabase::class);

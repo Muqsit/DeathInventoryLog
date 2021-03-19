@@ -8,17 +8,10 @@ use Ramsey\Uuid\UuidInterface;
 
 final class DeathInventoryLog{
 
-	/** @var int */
-	private $id;
-
-	/** @var UuidInterface */
-	private $uuid;
-
-	/** @var DeathInventory */
-	private $inventory;
-
-	/** @var int */
-	private $timestamp;
+	private int $id;
+	private UuidInterface $uuid;
+	private DeathInventory $inventory;
+	private int $timestamp;
 
 	public function __construct(int $id, UuidInterface $uuid, DeathInventory $inventory, int $timestamp){
 		$this->id = $id;

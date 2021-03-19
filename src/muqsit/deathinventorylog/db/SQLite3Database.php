@@ -25,8 +25,7 @@ final class SQLite3Database implements Database{
 		return new self($plugin, $configuration["file"]);
 	}
 
-	/** @var DataConnector */
-	private $connector;
+	private DataConnector $connector;
 
 	private function __construct(Loader $plugin, string $file){
 		$this->connector = libasynql::create($plugin, [
