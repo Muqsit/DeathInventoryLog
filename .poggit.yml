@@ -10,6 +10,6 @@ projects:
         version: ^3.4.0
         branch: "4.0"
       - src: muqsit/InvMenu/InvMenu
-        version: ^4.1.0
+        version: ^4.3.1
         branch: "4.0"
 ...
