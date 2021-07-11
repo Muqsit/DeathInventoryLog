@@ -77,69 +77,83 @@ final class Loader extends PluginBase implements Listener{
 		if(isset($args[0])){
 			switch($args[0]){
 				case "history":
-					if(isset($args[1])){
-						$page = isset($args[2]) ? max(1, (int) $args[2]) : 1;
-						$this->getTranslator()->translateGamertags([$args[1]], function(array $translations) use($page, $sender) : void{
-							$translation = current($translations);
-							if($translation !== false){
-								static $per_page = 10;
-								$offset = ($page - 1) * $per_page;
-								$this->database->retrievePlayer(Uuid::fromBytes($translation), $offset, $per_page, static function(array $entries) use($offset, $page, $sender) : void{
-									/** @var DeathInventoryLog[] $entries */
-									if(count($entries) > 0){
-										$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
-										foreach($entries as $entry){
-											$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->getId()} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d h:i:s", $entry->getUnixTimestamp()) . TextFormat::EOL;
-										}
-										$sender->sendMessage($message);
-									}else{
-										$sender->sendMessage($page === 1 ? TextFormat::RED . "No logs found for that player." : TextFormat::RED . "No logs found on page {$page} for that player.");
-									}
-								});
-							}else{
-								$sender->sendMessage(TextFormat::RED . "No logs found for that player.");
-							}
-						});
-					}else{
+					if(!isset($args[1])){
 						$sender->sendMessage(TextFormat::RED . "/{$label} {$args[0]} <player> [page=1]");
+						return true;
 					}
+
+					$page = isset($args[2]) ? max(1, (int) $args[2]) : 1;
+					$this->getTranslator()->translateGamertags([$args[1]], function(array $translations) use($page, $sender) : void{
+						if($sender instanceof Player && !$sender->isConnected()){
+							return;
+						}
+
+						$translation = current($translations);
+						if($translation === false){
+							$sender->sendMessage(TextFormat::RED . "No logs found for that player.");
+							return;
+						}
+
+						static $per_page = 10;
+						$offset = ($page - 1) * $per_page;
+						$this->database->retrievePlayer(Uuid::fromBytes($translation), $offset, $per_page, static function(array $entries) use($offset, $page, $sender) : void{
+							/** @var DeathInventoryLog[] $entries */
+							if(count($entries) === 0){
+								$sender->sendMessage($page === 1 ? TextFormat::RED . "No logs found for that player." : TextFormat::RED . "No logs found on page {$page} for that player.");
+								return;
+							}
+
+							$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
+							foreach($entries as $entry){
+								$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->getId()} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d h:i:s", $entry->getUnixTimestamp()) . TextFormat::EOL;
+							}
+							$sender->sendMessage($message);
+						});
+					});
 					return true;
 				case "retrieve":
-					if($sender instanceof Player){
-						if(isset($args[1])){
-							$id = (int) $args[1];
-							$this->database->retrieve($id, static function(?DeathInventoryLog $log) use ($sender, $id) : void{
-								if($log !== null){
-									if($sender->isConnected()){
-										$sender->sendMessage(TextFormat::GRAY . "Retrieved death inventory log #{$log->getId()}");
-
-										$items = $log->getInventory()->getInventoryContents();
-
-										$armor_inventory = $log->getInventory()->getArmorContents();
-										foreach([
-											ArmorInventory::SLOT_HEAD => 47,
-											ArmorInventory::SLOT_CHEST => 48,
-											ArmorInventory::SLOT_LEGS => 50,
-											ArmorInventory::SLOT_FEET => 51
-										] as $armor_inventory_slot => $menu_slot){
-											if(isset($armor_inventory[$armor_inventory_slot])){
-												$items[$menu_slot] = $armor_inventory[$armor_inventory_slot];
-											}
-										}
-
-										$menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
-										$menu->setName("Death Inventory Log #{$log->getId()}");
-										$menu->getInventory()->setContents($items);
-										$menu->send($sender);
-									}
-								}else{
-									$sender->sendMessage(TextFormat::RED . "No death log with the id #{$id} could be found.");
-								}
-							});
-						}
-					}else{
+					if(!($sender instanceof Player)){
 						$sender->sendMessage(TextFormat::RED . "This command can only be executed in-game.");
+						return true;
 					}
+
+					if(!isset($args[1])){
+						$sender->sendMessage(TextFormat::RED . "/{$label} {$args[0]} <id>");
+						return true;
+					}
+
+					$id = (int) $args[1];
+					$this->database->retrieve($id, static function(?DeathInventoryLog $log) use ($sender, $id) : void{
+						if(!$sender->isConnected()){
+							return;
+						}
+
+						if($log === null){
+							$sender->sendMessage(TextFormat::RED . "No death log with the id #{$id} could be found.");
+							return;
+						}
+
+						$sender->sendMessage(TextFormat::GRAY . "Retrieved death inventory log #{$log->getId()}");
+
+						$items = $log->getInventory()->getInventoryContents();
+
+						$armor_inventory = $log->getInventory()->getArmorContents();
+						foreach([
+							ArmorInventory::SLOT_HEAD => 47,
+							ArmorInventory::SLOT_CHEST => 48,
+							ArmorInventory::SLOT_LEGS => 50,
+							ArmorInventory::SLOT_FEET => 51
+						] as $armor_inventory_slot => $menu_slot){
+							if(isset($armor_inventory[$armor_inventory_slot])){
+								$items[$menu_slot] = $armor_inventory[$armor_inventory_slot];
+							}
+						}
+
+						$menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
+						$menu->setName("Death Inventory Log #{$log->getId()}");
+						$menu->getInventory()->setContents($items);
+						$menu->send($sender);
+					});
 					return true;
 			}
 		}
