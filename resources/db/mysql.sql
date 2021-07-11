@@ -1,4 +1,4 @@
--- #!sqlite
+-- #!mysql
 -- #{ deathinventorylog
 
 -- #  { init

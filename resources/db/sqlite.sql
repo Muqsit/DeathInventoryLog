@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS death_inventory_log(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   uuid BINARY(16) NOT NULL,
-  time,
+  time TIMESTAMP NOT NULL,
   inventory BLOB NOT NULL,
   armor_inventory BLOB NOT NULL
 );
