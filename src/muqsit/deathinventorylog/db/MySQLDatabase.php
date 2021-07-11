@@ -9,6 +9,7 @@ use muqsit\deathinventorylog\Loader;
 use muqsit\deathinventorylog\util\InventorySerializer;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
+use poggit\libasynql\SqlError;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
@@ -37,7 +38,14 @@ final class MySQLDatabase implements Database{
 				"schema" => $schema
 			]
 		], ["mysql" => "db/mysql.sql"]);
-		$this->connector->executeGeneric("deathinventorylog.init");
+		$this->connector->executeGeneric("deathinventorylog.init.create_table");
+		$this->connector->executeGeneric("deathinventorylog.init.index_uuid", [], null, static function(SqlError $error) : void{
+			if($error->getMessage() === "SQL EXECUTION error: Duplicate key name 'uuid_idx', for query ALTER TABLE death_inventory_log ADD INDEX uuid_idx(uuid); | []"){
+				// TODO: compare error message against an SQL error code instead (SqlError::getCode() seems to always return 0 here)
+				return;
+			}
+			throw $error;
+		});
 		$this->connector->waitAll();
 	}
 

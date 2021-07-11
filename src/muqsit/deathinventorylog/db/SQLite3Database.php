@@ -32,7 +32,8 @@ final class SQLite3Database implements Database{
 			"type" => "sqlite",
 			"sqlite" => ["file" => $file]
 		], ["sqlite" => "db/sqlite.sql"]);
-		$this->connector->executeGeneric("deathinventorylog.init");
+		$this->connector->executeGeneric("deathinventorylog.init.create_table");
+		$this->connector->executeGeneric("deathinventorylog.init.index_uuid");
 		$this->connector->waitAll();
 	}
 

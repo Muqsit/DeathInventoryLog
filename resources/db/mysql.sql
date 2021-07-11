@@ -2,13 +2,19 @@
 -- #{ deathinventorylog
 
 -- #  { init
+-- #    { create_table
 CREATE TABLE IF NOT EXISTS death_inventory_log(
   id INT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
   uuid BINARY(16) NOT NULL,
   time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
   inventory BLOB NOT NULL,
-  armor_inventory BLOB NOT NULL
+  armor_inventory BLOB NOT NULL,
+  KEY uuid_idx(uuid)
 );
+-- #    }
+-- #    { index_uuid
+ALTER TABLE death_inventory_log ADD INDEX uuid_idx(uuid);
+-- #    }
 -- #  }
 
 -- #  { retrieve
