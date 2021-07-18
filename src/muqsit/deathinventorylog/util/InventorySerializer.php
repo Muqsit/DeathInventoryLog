@@ -32,7 +32,7 @@ final class InventorySerializer{
 
 	/**
 	 * @param string $string
-	 * @return array
+	 * @return Item[]
 	 *
 	 * @phpstan-return array<int, Item>
 	 */
