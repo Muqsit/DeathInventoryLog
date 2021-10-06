@@ -62,7 +62,7 @@ final class Loader extends PluginBase implements Listener{
 	}
 
 	public function getTranslator() : GamertagUUIDTranslator{
-		return $this->translator ??= new LocalGamertagUUIDTranslator($this);
+		return $this->translator ??= LocalGamertagUUIDTranslator::create($this);
 	}
 
 	public function setTranslator(GamertagUUIDTranslator $translator) : void{

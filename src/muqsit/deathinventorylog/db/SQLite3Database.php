@@ -22,20 +22,19 @@ final class SQLite3Database implements Database{
 	 * @phpstan-param array{file: string} $configuration
 	 */
 	public static function create(Loader $plugin, array $configuration) : self{
-		return new self($plugin, $configuration["file"]);
-	}
-
-	private DataConnector $connector;
-
-	private function __construct(Loader $plugin, string $file){
-		$this->connector = libasynql::create($plugin, [
+		$connector = libasynql::create($plugin, [
 			"type" => "sqlite",
-			"sqlite" => ["file" => $file]
+			"sqlite" => ["file" => $configuration["file"]]
 		], ["sqlite" => "db/sqlite.sql"]);
-		$this->connector->executeGeneric("deathinventorylog.init.create_table");
-		$this->connector->executeGeneric("deathinventorylog.init.index_uuid");
-		$this->connector->waitAll();
+		$connector->executeGeneric("deathinventorylog.init.create_table");
+		$connector->executeGeneric("deathinventorylog.init.index_uuid");
+		$connector->waitAll();
+		return new self($connector);
 	}
+
+	private function __construct(
+		private DataConnector $connector
+	){}
 
 	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [

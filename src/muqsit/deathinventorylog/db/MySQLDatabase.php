@@ -23,31 +23,30 @@ final class MySQLDatabase implements Database{
 	 * @phpstan-param array{host: string, username: string, password: string, schema: string} $configuration
 	 */
 	public static function create(Loader $plugin, array $configuration) : self{
-		return new self($plugin, $configuration["host"], $configuration["username"], $configuration["password"], $configuration["schema"]);
-	}
-
-	private DataConnector $connector;
-
-	private function __construct(Loader $plugin, string $host, string $username, string $password, string $schema){
-		$this->connector = libasynql::create($plugin, [
+		$connector = libasynql::create($plugin, [
 			"type" => "mysql",
 			"mysql" => [
-				"host" => $host,
-				"username" => $username,
-				"password" => $password,
-				"schema" => $schema
+				"host" => $configuration["host"],
+				"username" => $configuration["username"],
+				"password" => $configuration["password"],
+				"schema" => $configuration["schema"]
 			]
 		], ["mysql" => "db/mysql.sql"]);
-		$this->connector->executeGeneric("deathinventorylog.init.create_table");
-		$this->connector->executeGeneric("deathinventorylog.init.index_uuid", [], null, static function(SqlError $error) : void{
+		$connector->executeGeneric("deathinventorylog.init.create_table");
+		$connector->executeGeneric("deathinventorylog.init.index_uuid", [], null, static function(SqlError $error) : void{
 			if($error->getMessage() === "SQL EXECUTION error: Duplicate key name 'uuid_idx', for query ALTER TABLE death_inventory_log ADD INDEX uuid_idx(uuid); | []"){
 				// TODO: compare error message against an SQL error code instead (SqlError::getCode() seems to always return 0 here)
 				return;
 			}
 			throw $error;
 		});
-		$this->connector->waitAll();
+		$connector->waitAll();
+		return new self($connector);
 	}
+
+	private function __construct(
+		private DataConnector $connector
+	){}
 
 	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [

@@ -13,16 +13,19 @@ use Ramsey\Uuid\UuidInterface;
 
 final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 
-	private DataConnector $connector;
-
-	public function __construct(Loader $plugin){
-		$this->connector = libasynql::create($plugin, [
+	public static function create(Loader $plugin) : self{
+		$connector = libasynql::create($plugin, [
 			"type" => "sqlite",
 			"sqlite" => ["file" => "uuid_gamertag_translations.sqlite"]
 		], ["sqlite" => "db/local_uuid_gamertag_translator.sql"]);
-		$this->connector->executeGeneric("deathinventorylog.init_translator");
-		$this->connector->waitAll();
+		$connector->executeGeneric("deathinventorylog.init_translator");
+		$connector->waitAll();
+		return new self($connector);
 	}
+
+	public function __construct(
+		private DataConnector $connector
+	){}
 
 	public function store(UuidInterface $uuid, string $gamertag) : void{
 		$this->connector->executeInsert("deathinventorylog.store_translation", [
