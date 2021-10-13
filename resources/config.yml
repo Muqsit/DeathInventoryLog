@@ -14,3 +14,15 @@ database:
     username: root
     password: ""
     schema: your_schema
+
+# Automatically delete death inventory logs
+auto-purge:
+  # Type of approach to use for purging. Could be:
+  #   "none": Do not automatically purge logs
+  #   "periodic": Periodically purge logs based on a given time period
+  type: none
+  # Configuration when "type" is set to "periodic"
+  periodic:
+    # Logs older than this period will be purged.
+    # Example formats: 1 week, 1 day, 1 month, 300 seconds, 4 days, 2 weeks
+    period: 1 week

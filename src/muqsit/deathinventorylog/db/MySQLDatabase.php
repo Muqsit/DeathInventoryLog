@@ -97,6 +97,12 @@ final class MySQLDatabase implements Database{
 		});
 	}
 
+	public function purge(int $older_than_timestamp, Closure $callback) : void{
+		$this->connector->executeSelect("deathinventorylog.purge", ["time" => $older_than_timestamp], static function(int $affectedRows) use($callback) : void{
+			$callback($affectedRows);
+		});
+	}
+
 	public function close() : void{
 		$this->connector->close();
 	}

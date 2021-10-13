@@ -86,6 +86,12 @@ final class SQLite3Database implements Database{
 		});
 	}
 
+	public function purge(int $older_than_timestamp, Closure $callback) : void{
+		$this->connector->executeChange("deathinventorylog.purge", ["time" => $older_than_timestamp], static function(int $affectedRows) use($callback) : void{
+			$callback($affectedRows);
+		});
+	}
+
 	public function close() : void{
 		$this->connector->close();
 	}

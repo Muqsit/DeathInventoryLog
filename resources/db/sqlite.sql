@@ -36,4 +36,9 @@ SELECT id, uuid, time, inventory, armor_inventory FROM death_inventory_log WHERE
 INSERT INTO death_inventory_log(uuid, time, inventory, armor_inventory) VALUES(:uuid, :time, :inventory, :armor_inventory);
 -- #  }
 
+-- #  { purge
+-- #    :time int
+DELETE FROM death_inventory_log WHERE time <= :time;
+-- #  }
+
 -- #}

@@ -36,4 +36,9 @@ SELECT id, uuid, UNIX_TIMESTAMP(time) AS time, inventory, armor_inventory FROM d
 INSERT INTO death_inventory_log(uuid, inventory, armor_inventory) VALUES(FROM_BASE64(:uuid), FROM_BASE64(:inventory), FROM_BASE64(:armor_inventory));
 -- #  }
 
+-- #  { purge
+-- #    :time int
+DELETE FROM death_inventory_log WHERE time <= FROM_UNIXTIME(:time);
+-- #  }
+
 -- #}

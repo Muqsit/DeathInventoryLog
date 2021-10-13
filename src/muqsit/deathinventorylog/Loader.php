@@ -8,6 +8,9 @@ use muqsit\deathinventorylog\db\Database;
 use muqsit\deathinventorylog\db\DatabaseFactory;
 use muqsit\deathinventorylog\db\DeathInventory;
 use muqsit\deathinventorylog\db\DeathInventoryLog;
+use muqsit\deathinventorylog\purger\LogPurger;
+use muqsit\deathinventorylog\purger\LogPurgerFactory;
+use muqsit\deathinventorylog\purger\NullLogPurger;
 use muqsit\deathinventorylog\translator\LocalGamertagUUIDTranslator;
 use muqsit\deathinventorylog\translator\GamertagUUIDTranslator;
 use muqsit\invmenu\InvMenu;
@@ -25,7 +28,14 @@ use Ramsey\Uuid\Uuid;
 final class Loader extends PluginBase implements Listener{
 
 	private Database $database;
+	private LogPurgerFactory $log_purger_factory;
+	private LogPurger $log_purger;
 	private ?GamertagUUIDTranslator $translator = null;
+
+	protected function onLoad() : void{
+		$this->log_purger = NullLogPurger::instance();
+		$this->log_purger_factory = new LogPurgerFactory($this);
+	}
 
 	protected function onEnable() : void{
 		if(!InvMenuHandler::isRegistered()){
@@ -37,11 +47,25 @@ final class Loader extends PluginBase implements Listener{
 		$this->database = $factory->create($this, $db_identifier, $this->getConfig()->getNested("database.{$db_identifier}"));
 
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+
+		if($this->log_purger instanceof NullLogPurger){ // don't set purger from configuration in case another plugin set a log purger already
+			$purge_config = $this->getConfig()->get("auto-purge");
+			if($purge_config === false){
+				$purge_config = ["type" => "none"];
+			}
+			$this->setLogPurger($this->log_purger_factory->create($purge_config["type"], $purge_config[$purge_config["type"]] ?? []));
+		}
 	}
 
 	protected function onDisable() : void{
+		$this->setLogPurger(NullLogPurger::instance());
 		$this->database->close();
 		$this->getTranslator()->close();
+	}
+
+	public function setLogPurger(LogPurger $purger) : void{
+		$this->log_purger->close();
+		$this->log_purger = $purger;
 	}
 
 	/**

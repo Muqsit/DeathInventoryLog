@@ -46,5 +46,13 @@ interface Database{
 	 */
 	public function retrievePlayer(UuidInterface $player, int $offset, int $length, Closure $callback) : void;
 
+	/**
+	 * @param int $older_than_timestamp
+	 * @param Closure $callback
+	 *
+	 * @phpstan-param Closure(int) : void $callback
+	 */
+	public function purge(int $older_than_timestamp, Closure $callback) : void;
+
 	public function close() : void;
 }
