@@ -48,12 +48,18 @@ final class MySQLDatabase implements Database{
 		private DataConnector $connector
 	){}
 
+	private function handleError() : Closure{
+		return static function(SqlError $error) : void{
+			throw $error;
+		};
+	}
+
 	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [
 			"uuid" => base64_encode($player->getBytes()),
 			"inventory" => base64_encode(InventorySerializer::serialize($inventory->getInventoryContents())),
 			"armor_inventory" => base64_encode(InventorySerializer::serialize($inventory->getArmorContents()))
-		], static function(int $insert_id, int $affected_rows) use($callback) : void{ $callback($insert_id); });
+		], static function(int $insert_id, int $affected_rows) use($callback) : void{ $callback($insert_id); }, $this->handleError());
 	}
 
 	public function retrieve(int $id, Closure $callback) : void{
@@ -72,7 +78,7 @@ final class MySQLDatabase implements Database{
 			}else{
 				$callback(null);
 			}
-		});
+		}, $this->handleError());
 	}
 
 	public function retrievePlayer(UuidInterface $player, int $offset, int $length, Closure $callback) : void{
@@ -94,13 +100,13 @@ final class MySQLDatabase implements Database{
 				);
 			}
 			$callback($result);
-		});
+		}, $this->handleError());
 	}
 
 	public function purge(int $older_than_timestamp, Closure $callback) : void{
 		$this->connector->executeChange("deathinventorylog.purge", ["time" => $older_than_timestamp], static function(int $affectedRows) use($callback) : void{
 			$callback($affectedRows);
-		});
+		}, $this->handleError());
 	}
 
 	public function close() : void{

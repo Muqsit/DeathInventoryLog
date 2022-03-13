@@ -121,6 +121,10 @@ final class Loader extends PluginBase implements Listener{
 						static $per_page = 10;
 						$offset = ($page - 1) * $per_page;
 						$this->database->retrievePlayer(Uuid::fromBytes($translation), $offset, $per_page, static function(array $entries) use($offset, $page, $sender) : void{
+							if($sender instanceof Player && !$sender->isConnected()){
+								return;
+							}
+
 							/** @var DeathInventoryLog[] $entries */
 							if(count($entries) === 0){
 								$sender->sendMessage($page === 1 ? TextFormat::RED . "No logs found for that player." : TextFormat::RED . "No logs found on page {$page} for that player.");
