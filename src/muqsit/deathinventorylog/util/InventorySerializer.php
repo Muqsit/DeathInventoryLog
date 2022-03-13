@@ -37,10 +37,7 @@ final class InventorySerializer{
 	 * @phpstan-return array<int, Item>
 	 */
 	public static function deSerialize(string $string) : array{
-		$tag = (new BigEndianNbtSerializer())->read($string)->mustGetCompoundTag()->getListTag(self::TAG_NAME);
-		if($tag === null){
-			throw new InvalidArgumentException("Invalid serialized string specified");
-		}
+		$tag = (new BigEndianNbtSerializer())->read($string)->mustGetCompoundTag()->getListTag(self::TAG_NAME) ?? throw new InvalidArgumentException("Invalid serialized string specified");
 
 		$contents = [];
 		/** @var CompoundTag $value */
