@@ -1,4 +1,6 @@
 # DeathInventoryLog
+[![](https://poggit.pmmp.io/shield.state/DeathInventoryLog)](https://poggit.pmmp.io/p/DeathInventoryLog)
+
 A plugin that logs players' inventory contents on death for future retrieval.<br>
 Handy for server administrators who may want to refund items that players have lost to hackers, bugs, and the likes.
 
