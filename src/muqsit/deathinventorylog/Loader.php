@@ -17,7 +17,7 @@ use muqsit\invmenu\InvMenu;
 use muqsit\invmenu\InvMenuHandler;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
-use pocketmine\event\Listener;
+use pocketmine\event\EventPriority;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\player\Player;
@@ -25,7 +25,7 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\utils\TextFormat;
 use Ramsey\Uuid\Uuid;
 
-final class Loader extends PluginBase implements Listener{
+final class Loader extends PluginBase{
 
 	private Database $database;
 	private LogPurgerFactory $log_purger_factory;
@@ -46,8 +46,6 @@ final class Loader extends PluginBase implements Listener{
 		$db_identifier = $this->getConfig()->getNested("database.type");
 		$this->database = $factory->create($this, $db_identifier, $this->getConfig()->getNested("database.{$db_identifier}"));
 
-		$this->getServer()->getPluginManager()->registerEvents($this, $this);
-
 		if($this->log_purger instanceof NullLogPurger){ // don't set purger from configuration in case another plugin set a log purger already
 			$purge_config = $this->getConfig()->get("auto-purge");
 			if($purge_config === false){
@@ -55,6 +53,19 @@ final class Loader extends PluginBase implements Listener{
 			}
 			$this->setLogPurger($this->log_purger_factory->create($purge_config["type"], $purge_config[$purge_config["type"]] ?? []));
 		}
+
+		$this->getServer()->getPluginManager()->registerEvent(PlayerDeathEvent::class, function(PlayerDeathEvent $event) : void{
+			$player = $event->getPlayer();
+			$uuid = $player->getUniqueId();
+			$name = $player->getName();
+			$this->getTranslator()->store($uuid, $name);
+			$this->database->store($uuid, new DeathInventory(
+				$player->getInventory()->getContents(),
+				$player->getArmorInventory()->getContents()
+			), function(int $id) use($name, $uuid) : void{
+				$this->getLogger()->debug("Stored death inventory [#{$id}] of {$name} [{$uuid->toString()}]");
+			});
+		}, EventPriority::LOWEST, $this);
 	}
 
 	protected function onDisable() : void{
@@ -66,23 +77,6 @@ final class Loader extends PluginBase implements Listener{
 	public function setLogPurger(LogPurger $purger) : void{
 		$this->log_purger->close();
 		$this->log_purger = $purger;
-	}
-
-	/**
-	 * @param PlayerDeathEvent $event
-	 * @priority LOWEST
-	 */
-	public function onPlayerDeath(PlayerDeathEvent $event) : void{
-		$player = $event->getPlayer();
-		$uuid = $player->getUniqueId();
-		$name = $player->getName();
-		$this->getTranslator()->store($uuid, $name);
-		$this->database->store($uuid, new DeathInventory(
-			$player->getInventory()->getContents(),
-			$player->getArmorInventory()->getContents()
-		), function(int $id) use($name, $uuid) : void{
-			$this->getLogger()->debug("Stored death inventory [#{$id}] of {$name} [{$uuid->toString()}]");
-		});
 	}
 
 	public function getTranslator() : GamertagUUIDTranslator{
