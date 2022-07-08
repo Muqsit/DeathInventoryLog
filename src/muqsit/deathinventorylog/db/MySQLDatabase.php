@@ -17,10 +17,8 @@ final class MySQLDatabase implements Database{
 
 	/**
 	 * @param Loader $plugin
-	 * @param mixed[] $configuration
+	 * @param array{host: string, username: string, password: string, schema: string} $configuration
 	 * @return self
-	 *
-	 * @phpstan-param array{host: string, username: string, password: string, schema: string} $configuration
 	 */
 	public static function create(Loader $plugin, array $configuration) : self{
 		$connector = libasynql::create($plugin, [

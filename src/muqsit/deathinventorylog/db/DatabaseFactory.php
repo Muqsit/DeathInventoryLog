@@ -8,11 +8,7 @@ use muqsit\deathinventorylog\Loader;
 
 final class DatabaseFactory{
 
-	/**
-	 * @var string[]|Database[]
-	 *
-	 * @phpstan-var array<string, class-string<Database>>
-	 */
+	/** @var array<string, class-string<Database>> */
 	private array $databases = [];
 
 	public function __construct(){
@@ -22,9 +18,7 @@ final class DatabaseFactory{
 
 	/**
 	 * @param string $identifier
-	 * @param string $class
-	 *
-	 * @phpstan-param class-string<Database> $class
+	 * @param class-string<Database> $class
 	 */
 	public function register(string $identifier, string $class) : void{
 		$this->databases[$identifier] = $class;
@@ -33,10 +27,8 @@ final class DatabaseFactory{
 	/**
 	 * @param Loader $loader
 	 * @param string $identifier
-	 * @param array $configuration
+	 * @param array<string, mixed> $configuration
 	 * @return Database
-	 *
-	 * @phpstan-param array<string, mixed> $configuration
 	 */
 	public function create(Loader $loader, string $identifier, array $configuration) : Database{
 		return $this->databases[$identifier]::create($loader, $configuration);

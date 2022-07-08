@@ -22,9 +22,7 @@ final class LogPurgerFactory{
 
 	/**
 	 * @param string $identifier
-	 * @param string $class
-	 *
-	 * @phpstan-param class-string<LogPurger> $class
+	 * @param class-string<LogPurger> $class
 	 */
 	public function register(string $identifier, string $class) : void{
 		$this->purgers[$identifier] = $class;

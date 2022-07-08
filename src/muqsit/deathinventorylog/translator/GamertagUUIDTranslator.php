@@ -13,17 +13,13 @@ interface GamertagUUIDTranslator{
 
 	/**
 	 * @param UuidInterface[] $uuids
-	 * @param Closure $callback
-	 *
-	 * @phpstan-param Closure(array<string, string>) : void $callback
+	 * @param Closure(array<string, string>) : void $callback
 	 */
 	public function translateUuids(array $uuids, Closure $callback) : void;
 
 	/**
 	 * @param string[] $gamertags
-	 * @param Closure $callback
-	 *
-	 * @phpstan-param Closure(array<string, string>) : void $callback
+	 * @param Closure(array<string, string>) : void $callback
 	 */
 	public function translateGamertags(array $gamertags, Closure $callback) : void;
 

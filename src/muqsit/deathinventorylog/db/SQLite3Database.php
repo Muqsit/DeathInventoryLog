@@ -16,10 +16,8 @@ final class SQLite3Database implements Database{
 
 	/**
 	 * @param Loader $plugin
-	 * @param mixed[] $configuration
+	 * @param array{file: string} $configuration
 	 * @return self
-	 *
-	 * @phpstan-param array{file: string} $configuration
 	 */
 	public static function create(Loader $plugin, array $configuration) : self{
 		$connector = libasynql::create($plugin, [
