@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace muqsit\deathinventorylog;
 
+use Closure;
+use Generator;
 use muqsit\deathinventorylog\db\Database;
 use muqsit\deathinventorylog\db\DatabaseFactory;
 use muqsit\deathinventorylog\db\DeathInventory;
@@ -24,6 +26,10 @@ use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\TextFormat;
 use Ramsey\Uuid\Uuid;
+use SOFe\AwaitGenerator\Await;
+use function count;
+use function current;
+use function gmdate;
 
 final class Loader extends PluginBase{
 
@@ -101,36 +107,32 @@ final class Loader extends PluginBase{
 					}
 
 					$page = isset($args[2]) ? max(1, (int) $args[2]) : 1;
-					$this->getTranslator()->translateGamertags([$args[1]], function(array $translations) use($page, $sender) : void{
+					$gamertags = [$args[1]];
+					Await::f2c(function() use($page, $sender, $gamertags) : Generator{
+						static $per_page = 10;
+						$offset = ($page - 1) * $per_page;
+						$translation = current(yield from Await::promise(function(Closure $resolve) use($gamertags) : void{
+							$this->getTranslator()->translateGamertags($gamertags, $resolve);
+						}));
+						$entries = $translation !== false ? yield from Await::promise(function(Closure $resolve) use($offset, $per_page, $translation) : void{
+							$this->database->retrievePlayer(Uuid::fromBytes($translation), $offset, $per_page, $resolve);
+						}) : [];
+
+						/** @var DeathInventoryLog[] $entries */
+						if(count($entries) === 0){
+							$sender->sendMessage($page === 1 ? TextFormat::RED . "No logs found for that player." : TextFormat::RED . "No logs found on page {$page} for that player.");
+							return;
+						}
+
 						if($sender instanceof Player && !$sender->isConnected()){
 							return;
 						}
 
-						$translation = current($translations);
-						if($translation === false){
-							$sender->sendMessage(TextFormat::RED . "No logs found for that player.");
-							return;
+						$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
+						foreach($entries as $entry){
+							$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->getId()} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d h:i:s", $entry->getUnixTimestamp()) . TextFormat::EOL;
 						}
-
-						static $per_page = 10;
-						$offset = ($page - 1) * $per_page;
-						$this->database->retrievePlayer(Uuid::fromBytes($translation), $offset, $per_page, static function(array $entries) use($offset, $page, $sender) : void{
-							if($sender instanceof Player && !$sender->isConnected()){
-								return;
-							}
-
-							/** @var DeathInventoryLog[] $entries */
-							if(count($entries) === 0){
-								$sender->sendMessage($page === 1 ? TextFormat::RED . "No logs found for that player." : TextFormat::RED . "No logs found on page {$page} for that player.");
-								return;
-							}
-
-							$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
-							foreach($entries as $entry){
-								$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->getId()} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d h:i:s", $entry->getUnixTimestamp()) . TextFormat::EOL;
-							}
-							$sender->sendMessage($message);
-						});
+						$sender->sendMessage($message);
 					});
 					return true;
 				case "retrieve":
