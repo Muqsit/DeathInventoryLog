@@ -9,25 +9,9 @@ use Ramsey\Uuid\UuidInterface;
 final class DeathInventoryLog{
 
 	public function __construct(
-		private int $id,
-		private UuidInterface $uuid,
-		private DeathInventory $inventory,
-		private int $timestamp
+		/** @readonly */ public int $id,
+		/** @readonly */ public UuidInterface $uuid,
+		/** @readonly */ public DeathInventory $inventory,
+		/** @readonly */ public int $timestamp
 	){}
-
-	public function getId() : int{
-		return $this->id;
-	}
-
-	public function getUuid() : UuidInterface{
-		return $this->uuid;
-	}
-
-	public function getInventory() : DeathInventory{
-		return $this->inventory;
-	}
-
-	public function getUnixTimestamp() : int{
-		return $this->timestamp;
-	}
 }

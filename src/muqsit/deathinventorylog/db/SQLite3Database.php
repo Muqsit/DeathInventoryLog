@@ -38,8 +38,8 @@ final class SQLite3Database implements Database{
 		$this->connector->executeInsert("deathinventorylog.save", [
 			"uuid" => $player->getBytes(),
 			"time" => time(),
-			"inventory" => InventorySerializer::serialize($inventory->getInventoryContents()),
-			"armor_inventory" => InventorySerializer::serialize($inventory->getArmorContents())
+			"inventory" => InventorySerializer::serialize($inventory->inventory_contents),
+			"armor_inventory" => InventorySerializer::serialize($inventory->armor_contents)
 		], static function(int $insert_id, int $affected_rows) use($callback) : void{ $callback($insert_id); });
 	}
 

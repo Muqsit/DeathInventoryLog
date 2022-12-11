@@ -130,7 +130,7 @@ final class Loader extends PluginBase{
 
 						$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
 						foreach($entries as $entry){
-							$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->getId()} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d h:i:s", $entry->getUnixTimestamp()) . TextFormat::EOL;
+							$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->id} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d h:i:s", $entry->timestamp) . TextFormat::EOL;
 						}
 						$sender->sendMessage($message);
 					});
@@ -157,11 +157,11 @@ final class Loader extends PluginBase{
 							return;
 						}
 
-						$sender->sendMessage(TextFormat::GRAY . "Retrieved death inventory log #{$log->getId()}");
+						$sender->sendMessage(TextFormat::GRAY . "Retrieved death inventory log #{$log->id}");
 
-						$items = $log->getInventory()->getInventoryContents();
+						$items = $log->inventory->inventory_contents;
 
-						$armor_inventory = $log->getInventory()->getArmorContents();
+						$armor_inventory = $log->inventory->armor_contents;
 						foreach([
 							ArmorInventory::SLOT_HEAD => 47,
 							ArmorInventory::SLOT_CHEST => 48,
@@ -174,7 +174,7 @@ final class Loader extends PluginBase{
 						}
 
 						$menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
-						$menu->setName("Death Inventory Log #{$log->getId()}");
+						$menu->setName("Death Inventory Log #{$log->id}");
 						$menu->getInventory()->setContents($items);
 						$menu->send($sender);
 					});
