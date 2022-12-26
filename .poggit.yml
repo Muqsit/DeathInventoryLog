@@ -10,7 +10,7 @@ projects:
         version: ^4.4.1
         branch: "4.0"
       - src: poggit/libasynql/libasynql
-        version: ^4.1.0
+        version: 4.1.0
       - src: SOF3/await-generator/await-generator
         version: ^3.4.2
 ...
