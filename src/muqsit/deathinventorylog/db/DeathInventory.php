@@ -13,7 +13,7 @@ final class DeathInventory{
 	 * @param array<int, Item> $armor_contents
 	 */
 	public function __construct(
-		/** @readonly */ public array $inventory_contents,
-		/** @readonly */ public array $armor_contents
+		readonly public array $inventory_contents,
+		readonly public array $armor_contents
 	){}
 }

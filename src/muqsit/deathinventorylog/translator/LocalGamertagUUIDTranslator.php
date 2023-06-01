@@ -48,7 +48,7 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 
 	public function translateGamertags(array $gamertags, Closure $callback) : void{
 		$this->connector->executeSelect("deathinventorylog.translate_gamertags", [
-			"gamertags" => implode("', '", array_map("strtolower", $gamertags))
+			"gamertags" => implode("', '", array_map(strtolower(...), $gamertags))
 		], static function(array $rows) use($callback) : void{
 			$result = [];
 			foreach($rows as $row){
