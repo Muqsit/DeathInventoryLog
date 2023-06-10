@@ -6,6 +6,7 @@ namespace muqsit\deathinventorylog\db;
 
 use Closure;
 use muqsit\deathinventorylog\Loader;
+use pocketmine\utils\VersionString;
 use Ramsey\Uuid\UuidInterface;
 
 interface Database{
@@ -16,6 +17,8 @@ interface Database{
 	 * @return static
 	 */
 	public static function create(Loader $plugin, array $configuration) : self;
+
+	public function upgrade(VersionString $previous, VersionString $current) : void;
 
 	/**
 	 * @param UuidInterface $player

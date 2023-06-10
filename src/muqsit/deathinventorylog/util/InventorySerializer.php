@@ -11,6 +11,7 @@ use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
 use pocketmine\nbt\TreeRoot;
+use function count;
 
 final class InventorySerializer{
 
@@ -21,6 +22,10 @@ final class InventorySerializer{
 	 * @return string
 	 */
 	public static function serialize(array $contents) : string{
+		if(count($contents) === 0){
+			return "";
+		}
+
 		$contents_tag = [];
 		foreach($contents as $slot => $item){
 			$contents_tag[] = $item->nbtSerialize($slot);
@@ -33,6 +38,10 @@ final class InventorySerializer{
 	 * @return array<int, Item>
 	 */
 	public static function deSerialize(string $string) : array{
+		if($string === ""){
+			return [];
+		}
+
 		$tag = (new BigEndianNbtSerializer())->read($string)->mustGetCompoundTag()->getListTag(self::TAG_NAME) ?? throw new InvalidArgumentException("Invalid serialized string specified");
 
 		$contents = [];

@@ -7,12 +7,18 @@ namespace muqsit\deathinventorylog\db;
 use Closure;
 use muqsit\deathinventorylog\Loader;
 use muqsit\deathinventorylog\util\InventorySerializer;
+use pocketmine\utils\VersionString;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
+use poggit\libasynql\SqlError;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 
 final class SQLite3Database implements Database{
+
+	private const VERSION_UPGRADE_MAPPING = [
+		"0.2.0" => "deathinventorylog.upgrade.impl_offhand_inventory"
+	];
 
 	/**
 	 * @param Loader $plugin
@@ -34,12 +40,22 @@ final class SQLite3Database implements Database{
 		private DataConnector $connector
 	){}
 
+	public function upgrade(VersionString $previous, VersionString $current) : void{
+		foreach(self::VERSION_UPGRADE_MAPPING as $version => $query_name){
+			$version = new VersionString($version);
+			if($version->compare($previous) < 0 && $version->compare($current) >= 0){
+				$this->connector->executeGeneric($query_name, [], null, function(SqlError $_) : void{});
+			}
+		}
+	}
+
 	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [
 			"uuid" => $player->getBytes(),
 			"time" => time(),
 			"inventory" => InventorySerializer::serialize($inventory->inventory_contents),
-			"armor_inventory" => InventorySerializer::serialize($inventory->armor_contents)
+			"armor_inventory" => InventorySerializer::serialize($inventory->armor_contents),
+			"offhand_inventory" => InventorySerializer::serialize($inventory->offhand_contents)
 		], static function(int $insert_id, int $affected_rows) use($callback) : void{ $callback($insert_id); });
 	}
 
@@ -52,7 +68,8 @@ final class SQLite3Database implements Database{
 					Uuid::fromBytes($row["uuid"]),
 					new DeathInventory(
 						InventorySerializer::deSerialize($row["inventory"]),
-						InventorySerializer::deSerialize($row["armor_inventory"])
+						InventorySerializer::deSerialize($row["armor_inventory"]),
+						InventorySerializer::deSerialize($row["offhand_inventory"])
 					),
 					$row["time"]
 				));
@@ -75,7 +92,8 @@ final class SQLite3Database implements Database{
 					Uuid::fromBytes($row["uuid"]),
 					new DeathInventory(
 						InventorySerializer::deSerialize($row["inventory"]),
-						InventorySerializer::deSerialize($row["armor_inventory"])
+						InventorySerializer::deSerialize($row["armor_inventory"]),
+						InventorySerializer::deSerialize($row["offhand_inventory"])
 					),
 					$row["time"]
 				);

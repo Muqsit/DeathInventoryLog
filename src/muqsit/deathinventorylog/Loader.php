@@ -22,13 +22,19 @@ use pocketmine\command\CommandSender;
 use pocketmine\event\EventPriority;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\inventory\ArmorInventory;
+use pocketmine\item\VanillaItems;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\TextFormat;
+use pocketmine\utils\VersionString;
 use Ramsey\Uuid\Uuid;
 use SOFe\AwaitGenerator\Await;
+use Symfony\Component\Filesystem\Path;
 use function count;
 use function current;
+use function file_exists;
+use function file_get_contents;
+use function file_put_contents;
 use function gmdate;
 
 final class Loader extends PluginBase{
@@ -44,6 +50,16 @@ final class Loader extends PluginBase{
 	}
 
 	protected function onEnable() : void{
+		$version_file = Path::join($this->getDataFolder(), ".version");
+		if(!file_exists($version_file)){
+			$version = file_exists(Path::join($this->getDataFolder(), "config.yml")) ? "0.1.1" : $this->getDescription()->getVersion();
+			file_put_contents($version_file, $version);
+			$previous_version = $current_version = new VersionString($version);
+		}else{
+			$previous_version = new VersionString(file_get_contents($version_file));
+			$current_version = new VersionString($this->getDescription()->getVersion());
+		}
+
 		if(!InvMenuHandler::isRegistered()){
 			InvMenuHandler::register($this);
 		}
@@ -51,6 +67,11 @@ final class Loader extends PluginBase{
 		$factory = new DatabaseFactory();
 		$db_identifier = $this->getConfig()->getNested("database.type");
 		$this->database = $factory->create($this, $db_identifier, $this->getConfig()->getNested("database.{$db_identifier}"));
+		if($previous_version->compare($current_version) === 1){
+			$this->getLogger()->notice("Upgrading from v{$previous_version->getFullVersion()} to v{$current_version->getFullVersion()}");
+			$this->database->upgrade($previous_version, $current_version);
+			file_put_contents($version_file, $current_version->getFullVersion());
+		}
 
 		if($this->log_purger instanceof NullLogPurger){ // don't set purger from configuration in case another plugin set a log purger already
 			$purge_config = $this->getConfig()->get("auto-purge");
@@ -67,7 +88,8 @@ final class Loader extends PluginBase{
 			$this->getTranslator()->store($uuid, $name);
 			$this->database->store($uuid, new DeathInventory(
 				$player->getInventory()->getContents(),
-				$player->getArmorInventory()->getContents()
+				$player->getArmorInventory()->getContents(),
+				$player->getOffHandInventory()->getContents()
 			), function(int $id) use($name, $uuid) : void{
 				$this->getLogger()->debug("Stored death inventory [#{$id}] of {$name} [{$uuid->toString()}]");
 			});
@@ -172,6 +194,8 @@ final class Loader extends PluginBase{
 								$items[$menu_slot] = $armor_inventory[$armor_inventory_slot];
 							}
 						}
+
+						$items[53] = $log->inventory->offhand_contents[0] ?? VanillaItems::AIR();
 
 						$menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 						$menu->setName("Death Inventory Log #{$log->id}");
