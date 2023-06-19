@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace muqsit\deathinventorylog\util;
 
 use InvalidArgumentException;
+use pocketmine\data\SavedDataLoadingException;
 use pocketmine\item\Item;
 use pocketmine\nbt\BigEndianNbtSerializer;
 use pocketmine\nbt\NBT;
@@ -47,7 +48,12 @@ final class InventorySerializer{
 		$contents = [];
 		/** @var CompoundTag $value */
 		foreach($tag as $value){
-			$contents[$value->getByte("Slot")] = Item::nbtDeserialize($value);
+			try{
+				$item = Item::nbtDeserialize($value);
+			}catch(SavedDataLoadingException){
+				continue;
+			}
+			$contents[$value->getByte("Slot")] = $item;
 		}
 		return $contents;
 	}
