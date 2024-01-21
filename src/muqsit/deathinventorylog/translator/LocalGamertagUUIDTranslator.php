@@ -29,7 +29,7 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 
 	public function store(UuidInterface $uuid, string $gamertag) : void{
 		$this->connector->executeInsert("deathinventorylog.store_translation", [
-			"uuid" => $uuid->toString(),
+			"player_uuid" => $uuid->toString(),
 			"gamertag" => $gamertag
 		]);
 	}
@@ -40,7 +40,7 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 		], static function(array $rows) use($callback) : void{
 			$result = [];
 			foreach($rows as $row){
-				$result[Uuid::fromString($row["uuid"])->getBytes()] = $row["gamertag"];
+				$result[Uuid::fromString($row["player_uuid"])->getBytes()] = $row["gamertag"];
 			}
 			$callback($result);
 		});
@@ -52,7 +52,7 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 		], static function(array $rows) use($callback) : void{
 			$result = [];
 			foreach($rows as $row){
-				$result[strtolower($row["gamertag"])] = Uuid::fromString($row["uuid"])->getBytes();
+				$result[strtolower($row["gamertag"])] = Uuid::fromString($row["player_uuid"])->getBytes();
 			}
 			$callback($result);
 		});
