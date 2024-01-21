@@ -37,13 +37,6 @@ final class MySQLDatabase implements Database{
 			]
 		], ["mysql" => "db/mysql.sql"]);
 		$connector->executeGeneric("deathinventorylog.init.create_table");
-		$connector->executeGeneric("deathinventorylog.init.index_uuid", [], null, static function(SqlError $error) : void{
-			if($error->getMessage() === "SQL EXECUTION error: Duplicate key name 'uuid_idx', for query ALTER TABLE death_inventory_log ADD INDEX uuid_idx(uuid); | []"){
-				// TODO: compare error message against an SQL error code instead (SqlError::getCode() seems to always return 0 here)
-				return;
-			}
-			throw $error;
-		});
 		$connector->waitAll();
 		return new self($connector);
 	}
@@ -69,8 +62,8 @@ final class MySQLDatabase implements Database{
 
 	public function store(UuidInterface $player, DeathInventory $inventory, Closure $callback) : void{
 		$this->connector->executeInsert("deathinventorylog.save", [
-			"uuid" => base64_encode($player->getBytes()),
-			"inventory" => base64_encode(InventorySerializer::serialize($inventory->inventory_contents)),
+			"player_uuid" => base64_encode($player->getBytes()),
+			"item_inventory" => base64_encode(InventorySerializer::serialize($inventory->inventory_contents)),
 			"armor_inventory" => base64_encode(InventorySerializer::serialize($inventory->armor_contents)),
 			"offhand_inventory" => base64_encode(InventorySerializer::serialize($inventory->offhand_contents))
 		], static function(int $insert_id, int $affected_rows) use($callback) : void{ $callback($insert_id); }, $this->handleError());
@@ -82,13 +75,13 @@ final class MySQLDatabase implements Database{
 			if($row !== false){
 				$callback(new DeathInventoryLog(
 					$row["id"],
-					Uuid::fromBytes($row["uuid"]),
+					Uuid::fromBytes($row["player_uuid"]),
 					new DeathInventory(
-						InventorySerializer::deSerialize($row["inventory"]),
+						InventorySerializer::deSerialize($row["item_inventory"]),
 						InventorySerializer::deSerialize($row["armor_inventory"]),
 						InventorySerializer::deSerialize($row["offhand_inventory"])
 					),
-					$row["time"]
+					$row["log_time"]
 				));
 			}else{
 				$callback(null);
@@ -98,7 +91,7 @@ final class MySQLDatabase implements Database{
 
 	public function retrievePlayer(UuidInterface $player, int $offset, int $length, Closure $callback) : void{
 		$this->connector->executeSelect("deathinventorylog.retrieve_player", [
-			"uuid" => $player->getBytes(),
+			"player_uuid" => $player->getBytes(),
 			"offset" => $offset,
 			"length" => $length
 		], static function(array $rows) use($callback) : void{
@@ -106,13 +99,13 @@ final class MySQLDatabase implements Database{
 			foreach($rows as $row){
 				$result[] = new DeathInventoryLog(
 					$row["id"],
-					Uuid::fromBytes($row["uuid"]),
+					Uuid::fromBytes($row["player_uuid"]),
 					new DeathInventory(
-						InventorySerializer::deSerialize($row["inventory"]),
+						InventorySerializer::deSerialize($row["item_inventory"]),
 						InventorySerializer::deSerialize($row["armor_inventory"]),
 						InventorySerializer::deSerialize($row["offhand_inventory"])
 					),
-					$row["time"]
+					$row["log_time"]
 				);
 			}
 			$callback($result);
@@ -120,7 +113,7 @@ final class MySQLDatabase implements Database{
 	}
 
 	public function purge(int $older_than_timestamp, Closure $callback) : void{
-		$this->connector->executeChange("deathinventorylog.purge", ["time" => $older_than_timestamp], static function(int $affectedRows) use($callback) : void{
+		$this->connector->executeChange("deathinventorylog.purge", ["log_time" => $older_than_timestamp], static function(int $affectedRows) use($callback) : void{
 			$callback($affectedRows);
 		}, $this->handleError());
 	}
