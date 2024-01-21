@@ -256,20 +256,11 @@ final class Loader extends PluginBase{
     {
         $items = $log->inventory->inventory_contents;
         $armor_inventory = $log->inventory->armor_contents;
+        $offHandItem = $log->inventory->offhand_contents ?? VanillaItems::AIR();
 
-        foreach ([
-                     ArmorInventory::SLOT_HEAD => 47,
-                     ArmorInventory::SLOT_CHEST => 48,
-                     ArmorInventory::SLOT_LEGS => 50,
-                     ArmorInventory::SLOT_FEET => 51,
-                 ] as $armor_inventory_slot => $menu_slot) {
-            if (isset($armor_inventory[$armor_inventory_slot])) {
-                $items[$menu_slot] = $armor_inventory[$armor_inventory_slot];
-            }
-        }
-
-        $items[53] = $log->inventory->offhand_contents[0] ?? VanillaItems::AIR();
         $player->getInventory()->setContents($items);
+        $player->getArmorInventory()->setContents($armor_inventory);
+        $player->getOffHandInventory()->setContents($offHandItem);
     }
 
     private function displayLogToSender(DeathInventoryLog $log, CommandSender $sender, string $command): void
