@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace muqsit\deathinventorylog\translator;
 
-use Closure;
+use Generator;
 use muqsit\deathinventorylog\Loader;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use function strtolower;
 
 final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
+	use AsyncToCallbackGamertagUUIDTranslatorTrait;
 
 	public static function create(Loader $plugin) : self{
 		$connector = libasynql::create($plugin, [
@@ -34,28 +36,26 @@ final class LocalGamertagUUIDTranslator implements GamertagUUIDTranslator{
 		]);
 	}
 
-	public function translateUuids(array $uuids, Closure $callback) : void{
-		$this->connector->executeSelect("deathinventorylog.translate_uuids", [
+	public function translateUuidsAsync(array $uuids) : Generator{
+		$rows = yield from $this->connector->asyncSelect("deathinventorylog.translate_uuids", [
 			"uuids" => "'" . implode("', '", array_map(static fn(UuidInterface $uuid) : string => $uuid->toString(), $uuids)) . "'"
-		], static function(array $rows) use($callback) : void{
-			$result = [];
-			foreach($rows as $row){
-				$result[Uuid::fromString($row["uuid"])->getBytes()] = $row["gamertag"];
-			}
-			$callback($result);
-		});
+		]);
+		$result = [];
+		foreach($rows as $row){
+			$result[Uuid::fromString($row["uuid"])->getBytes()] = $row["gamertag"];
+		}
+		return $result;
 	}
 
-	public function translateGamertags(array $gamertags, Closure $callback) : void{
-		$this->connector->executeSelect("deathinventorylog.translate_gamertags", [
+	public function translateGamertagsAsync(array $gamertags) : Generator{
+		$rows = yield from $this->connector->asyncSelect("deathinventorylog.translate_gamertags", [
 			"gamertags" => implode("', '", array_map(strtolower(...), $gamertags))
-		], static function(array $rows) use($callback) : void{
-			$result = [];
-			foreach($rows as $row){
-				$result[strtolower($row["gamertag"])] = Uuid::fromString($row["uuid"])->getBytes();
-			}
-			$callback($result);
-		});
+		]);
+		$result = [];
+		foreach($rows as $row){
+			$result[strtolower($row["gamertag"])] = Uuid::fromString($row["uuid"])->getBytes();
+		}
+		return $result;
 	}
 
 	public function close() : void{

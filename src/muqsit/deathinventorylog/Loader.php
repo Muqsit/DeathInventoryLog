@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace muqsit\deathinventorylog;
 
-use Closure;
 use Generator;
 use muqsit\deathinventorylog\db\Database;
 use muqsit\deathinventorylog\db\DatabaseFactory;
@@ -32,7 +31,6 @@ use Ramsey\Uuid\Uuid;
 use SOFe\AwaitGenerator\Await;
 use Symfony\Component\Filesystem\Path;
 use function count;
-use function current;
 use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
@@ -145,9 +143,7 @@ final class Loader extends PluginBase{
 					$gamertags = [$args[1]];
 					static $per_page = 10;
 					$offset = ($page - 1) * $per_page;
-					$translation = current(yield from Await::promise(function(Closure $resolve) use($gamertags) : void{
-						$this->getTranslator()->translateGamertags($gamertags, $resolve);
-					}));
+					$translation = yield from $this->getTranslator()->translateGamertagsAsync($gamertags);
 					$entries = yield from $this->database->retrievePlayerAsync(Uuid::fromBytes($translation), $offset, $per_page);
 
 					/** @var DeathInventoryLog[] $entries */
