@@ -31,6 +31,7 @@ use Ramsey\Uuid\Uuid;
 use SOFe\AwaitGenerator\Await;
 use Symfony\Component\Filesystem\Path;
 use function count;
+use function current;
 use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
@@ -143,8 +144,12 @@ final class Loader extends PluginBase{
 					$gamertags = [$args[1]];
 					static $per_page = 10;
 					$offset = ($page - 1) * $per_page;
-					$translation = yield from $this->getTranslator()->translateGamertagsAsync($gamertags);
-					$entries = yield from $this->database->retrievePlayerAsync(Uuid::fromBytes($translation), $offset, $per_page);
+					$translation = current(yield from $this->getTranslator()->translateGamertagsAsync($gamertags));
+					if($translation !== false){
+						$entries = yield from $this->database->retrievePlayerAsync(Uuid::fromBytes($translation), $offset, $per_page);
+					}else{
+						$entries = [];
+					}
 
 					/** @var DeathInventoryLog[] $entries */
 					if(count($entries) === 0){
