@@ -128,7 +128,7 @@ final class Loader extends PluginBase{
 	 * @param Command $command
 	 * @param string $label
 	 * @param string[] $args
-	 * @return Generator<mixed, Await::RESOLVE, void, void>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, void>
 	 */
 	private function onCommandAsync(WeakCommandSender $sender, Command $command, string $label, array $args) : Generator{
 		if(isset($args[0])){

@@ -27,13 +27,13 @@ interface GamertagUUIDTranslator{
 
 	/**
 	 * @param UuidInterface[] $uuids
-	 * @return Generator<mixed, Await::RESOLVE, void, array<string, string>>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, array<string, string>>
 	 */
 	public function translateUuidsAsync(array $uuids) : Generator;
 
 	/**
 	 * @param string[] $gamertags
-	 * @return Generator<mixed, Await::RESOLVE, void, array<string, string>>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, array<string, string>>
 	 */
 	public function translateGamertagsAsync(array $gamertags) : Generator;
 

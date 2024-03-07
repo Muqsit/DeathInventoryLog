@@ -52,13 +52,13 @@ interface Database{
 	/**
 	 * @param UuidInterface $player
 	 * @param DeathInventory $inventory
-	 * @return Generator<mixed, Await::RESOLVE, void, int>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, int>
 	 */
 	public function storeAsync(UuidInterface $player, DeathInventory $inventory) : Generator;
 
 	/**
 	 * @param int $id
-	 * @return Generator<mixed, Await::RESOLVE, void, DeathInventoryLog|null>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, DeathInventoryLog|null>
 	 */
 	public function retrieveAsync(int $id) : Generator;
 
@@ -66,13 +66,13 @@ interface Database{
 	 * @param UuidInterface $player
 	 * @param int $offset
 	 * @param int $length
-	 * @return Generator<mixed, Await::RESOLVE, void, DeathInventoryLog[]>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, DeathInventoryLog[]>
 	 */
 	public function retrievePlayerAsync(UuidInterface $player, int $offset, int $length) : Generator;
 
 	/**
 	 * @param int $older_than_timestamp
-	 * @return Generator<mixed, Await::RESOLVE, void, int>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, int>
 	 */
 	public function purgeAsync(int $older_than_timestamp) : Generator;
 
