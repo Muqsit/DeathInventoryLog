@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace muqsit\deathinventorylog\db;
 
 use Closure;
+use Generator;
 use muqsit\deathinventorylog\Loader;
 use pocketmine\utils\VersionString;
 use Ramsey\Uuid\UuidInterface;
+use SOFe\AwaitGenerator\Await;
 
 interface Database{
 
@@ -46,6 +48,33 @@ interface Database{
 	 * @param Closure(int) : void $callback
 	 */
 	public function purge(int $older_than_timestamp, Closure $callback) : void;
+
+	/**
+	 * @param UuidInterface $player
+	 * @param DeathInventory $inventory
+	 * @return Generator<mixed, Await::RESOLVE, void, int>
+	 */
+	public function storeAsync(UuidInterface $player, DeathInventory $inventory) : Generator;
+
+	/**
+	 * @param int $id
+	 * @return Generator<mixed, Await::RESOLVE, void, DeathInventoryLog|null>
+	 */
+	public function retrieveAsync(int $id) : Generator;
+
+	/**
+	 * @param UuidInterface $player
+	 * @param int $offset
+	 * @param int $length
+	 * @return Generator<mixed, Await::RESOLVE, void, DeathInventoryLog[]>
+	 */
+	public function retrievePlayerAsync(UuidInterface $player, int $offset, int $length) : Generator;
+
+	/**
+	 * @param int $older_than_timestamp
+	 * @return Generator<mixed, Await::RESOLVE, void, int>
+	 */
+	public function purgeAsync(int $older_than_timestamp) : Generator;
 
 	public function close() : void;
 }
