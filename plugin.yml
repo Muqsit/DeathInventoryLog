@@ -1,7 +1,7 @@
 name: DeathInventoryLog
 main: muqsit\deathinventorylog\Loader
-api: 5.3.0
-version: 0.2.2
+api: 5.0.0
+version: 1.0.0
 permissions:
   deathinventorylog.command:
     default: op
