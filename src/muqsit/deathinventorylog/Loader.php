@@ -152,7 +152,7 @@ final class Loader extends PluginBase{
 
 						$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
 						foreach($entries as $entry){
-							$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->id} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d h:i:s", $entry->timestamp) . TextFormat::EOL;
+							$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->id} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d H:i:s", $entry->timestamp) . TextFormat::EOL;
 						}
 						$sender->sendMessage($message);
 					});
