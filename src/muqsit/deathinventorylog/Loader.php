@@ -15,6 +15,7 @@ use muqsit\deathinventorylog\purger\LogPurgerFactory;
 use muqsit\deathinventorylog\purger\NullLogPurger;
 use muqsit\deathinventorylog\translator\LocalGamertagUUIDTranslator;
 use muqsit\deathinventorylog\translator\GamertagUUIDTranslator;
+use muqsit\deathinventorylog\util\WeakCommandSender;
 use muqsit\invmenu\InvMenu;
 use muqsit\invmenu\InvMenuHandler;
 use pocketmine\command\Command;
@@ -120,18 +121,18 @@ final class Loader extends PluginBase{
 	}
 
 	public function onCommand(CommandSender $sender, Command $command, string $label, array $args) : bool{
-		Await::g2c($this->onCommandAsync($sender, $command, $label, $args));
+		Await::g2c($this->onCommandAsync(new WeakCommandSender($sender), $command, $label, $args));
 		return true;
 	}
 
 	/**
-	 * @param CommandSender $sender
+	 * @param WeakCommandSender $sender
 	 * @param Command $command
 	 * @param string $label
 	 * @param string[] $args
 	 * @return Generator<mixed, Await::RESOLVE, void, void>
 	 */
-	private function onCommandAsync(CommandSender $sender, Command $command, string $label, array $args) : Generator{
+	private function onCommandAsync(WeakCommandSender $sender, Command $command, string $label, array $args) : Generator{
 		if(isset($args[0])){
 			switch($args[0]){
 				case "history":
@@ -155,10 +156,6 @@ final class Loader extends PluginBase{
 						return;
 					}
 
-					if($sender instanceof Player && !$sender->isConnected()){
-						return;
-					}
-
 					$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
 					foreach($entries as $entry){
 						$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->id} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d H:i:s", $entry->timestamp) . TextFormat::EOL;
@@ -166,11 +163,6 @@ final class Loader extends PluginBase{
 					$sender->sendMessage($message);
 					return;
 				case "retrieve":
-					if(!($sender instanceof Player)){
-						$sender->sendMessage(TextFormat::RED . "This command can only be executed in-game.");
-						return;
-					}
-
 					if(!isset($args[1])){
 						$sender->sendMessage(TextFormat::RED . "/{$label} {$args[0]} <id>");
 						return;
@@ -178,7 +170,9 @@ final class Loader extends PluginBase{
 
 					$id = (int) $args[1];
 					$log = yield from $this->database->retrieveAsync($id);
-					if(!$sender->isConnected()){
+					$sender_player = $sender->get();
+					if(!($sender_player instanceof Player)){
+						$sender->sendMessage(TextFormat::RED . "This command can only be executed in-game.");
 						return;
 					}
 
@@ -208,7 +202,7 @@ final class Loader extends PluginBase{
 					$menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
 					$menu->setName("Death Inventory Log #{$log->id}");
 					$menu->getInventory()->setContents($items);
-					$menu->send($sender);
+					$menu->send($sender_player);
 					return;
 			}
 		}
