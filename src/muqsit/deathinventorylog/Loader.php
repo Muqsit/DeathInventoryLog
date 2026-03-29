@@ -21,21 +21,33 @@ use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\event\EventPriority;
 use pocketmine\event\player\PlayerDeathEvent;
+use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\item\VanillaItems;
+use pocketmine\permission\Permission;
+use pocketmine\permission\PermissionManager;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
+use pocketmine\scheduler\ClosureTask;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\VersionString;
 use Ramsey\Uuid\Uuid;
+use RuntimeException;
 use SOFe\AwaitGenerator\Await;
+use SOFe\AwaitGenerator\Mutex;
 use Symfony\Component\Filesystem\Path;
+use function assert;
 use function count;
 use function current;
 use function file_exists;
 use function file_get_contents;
 use function file_put_contents;
 use function gmdate;
+use function is_numeric;
+use function max;
+use function spl_object_id;
+use function strtolower;
 
 final class Loader extends PluginBase{
 
@@ -44,9 +56,21 @@ final class Loader extends PluginBase{
 	private LogPurger $log_purger;
 	private ?GamertagUUIDTranslator $translator = null;
 
+	private Permission $permission_read_history_self;
+	private Permission $permission_read_history_others;
+	private Permission $permission_retrieve_contents;
+
+	/** @var array<int, Mutex> */
+	private array $command_locks = [];
+
 	protected function onLoad() : void{
 		$this->log_purger = NullLogPurger::instance();
 		$this->log_purger_factory = new LogPurgerFactory($this);
+
+		$manager = PermissionManager::getInstance();
+		$this->permission_read_history_self = $manager->getPermission("deathinventorylog.read.self") ?? throw new RuntimeException("Could not find permission");
+		$this->permission_read_history_others = $manager->getPermission("deathinventorylog.read.other") ?? throw new RuntimeException("Could not find permission");
+		$this->permission_retrieve_contents = $manager->getPermission("deathinventorylog.retrieve.contents") ?? throw new RuntimeException("Could not find permission");
 	}
 
 	protected function onEnable() : void{
@@ -94,6 +118,10 @@ final class Loader extends PluginBase{
 				$this->getLogger()->debug("Stored death inventory [#{$id}] of {$name} [{$uuid->toString()}]");
 			});
 		}, EventPriority::LOWEST, $this);
+
+		$this->getServer()->getPluginManager()->registerEvent(PlayerQuitEvent::class, function(PlayerQuitEvent $event) : void{
+			unset($this->command_locks[spl_object_id($event->getPlayer())]);
+		}, EventPriority::MONITOR, $this);
 	}
 
 	protected function onDisable() : void{
@@ -120,98 +148,149 @@ final class Loader extends PluginBase{
 	}
 
 	public function onCommand(CommandSender $sender, Command $command, string $label, array $args) : bool{
-		Await::g2c($this->onCommandAsync(new WeakCommandSender($sender), $command, $label, $args));
+		$lock = $this->command_locks[spl_object_id($sender)] ??= new Mutex();
+		if(!$lock->isIdle()){
+			$sender->sendMessage(TextFormat::GRAY . "You are executing this command too quickly. Please wait a moment before retrying.");
+			return true;
+		}
+
+		switch($args[0] ?? ""){
+			case "history":
+				if($sender instanceof Player && count($args) === 1){ // dil history
+					$gamertag = $sender->getName();
+					$page = 1;
+				}elseif($sender instanceof Player && count($args) > 1 && is_numeric($args[1])){ // dil history 2
+					$gamertag = $sender->getName();
+					$page = max(1, (int) $args[1]);
+				}elseif(count($args) > 1 && !is_numeric($args[1])){ // dil history steve [page=1]
+					$gamertag = $args[1];
+					$page = max(1, (int) ($args[2] ?? 1));
+				}else{
+					break;
+				}
+				if(!$sender->hasPermission($this->permission_read_history_self) && strtolower($gamertag) === strtolower($sender->getName())){
+					break;
+				}
+				if(!$sender->hasPermission($this->permission_read_history_others) && strtolower($gamertag) !== strtolower($sender->getName())){
+					break;
+				}
+				assert($page > 0);
+				Await::g2c($lock->run($this->sendHistory(new WeakCommandSender($sender), $gamertag, $page)));
+				return true;
+			case "retrieve":
+				if(!isset($args[1])){
+					break;
+				}
+				if(!($sender instanceof Player)){
+					$sender->sendMessage(TextFormat::RED . "This command can only be executed in-game.");
+					return true;
+				}
+				Await::g2c($lock->run($this->sendContents(new WeakCommandSender($sender), (int) $args[1])));
+				return true;
+		}
+
+		$choices = [];
+		if($sender->hasPermission($this->permission_read_history_self)) $choices[] = TextFormat::WHITE . "/{$label} history [page=1] " . TextFormat::GRAY . "List your own death log history";
+		if($sender->hasPermission($this->permission_read_history_others)) $choices[] = TextFormat::WHITE . "/{$label} history <player> [page=1] " . TextFormat::GRAY . "List a player's death log history";
+		if($sender->hasPermission($this->permission_read_history_self) || $sender->hasPermission($this->permission_read_history_others)) $choices[] = TextFormat::WHITE . "/{$label} retrieve <id> " . TextFormat::GRAY . "Retrieve inventory contents of a specific death log";
+		if(count($choices) === 0){
+			$sender->sendMessage(TextFormat::RED . "You do not have permission to use this command.");
+		}else{
+			$sender->sendMessage(TextFormat::BOLD . TextFormat::RED . "Death Inventory Log Commands" . TextFormat::RESET . TextFormat::EOL . implode(TextFormat::EOL, $choices));
+		}
 		return true;
 	}
 
 	/**
-	 * @param WeakCommandSender $sender
-	 * @param Command $command
-	 * @param string $label
-	 * @param string[] $args
 	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, void>
 	 */
-	private function onCommandAsync(WeakCommandSender $sender, Command $command, string $label, array $args) : Generator{
-		if(isset($args[0])){
-			switch($args[0]){
-				case "history":
-					if(!isset($args[1])){
-						$sender->sendMessage(TextFormat::RED . "/{$label} {$args[0]} <player> [page=1]");
-						return;
-					}
+	private function sleep() : Generator{
+		yield from Await::promise(fn($resolve) => $this->getScheduler()->scheduleDelayedTask(new ClosureTask($resolve), 20));
+	}
 
-					$page = isset($args[2]) ? max(1, (int) $args[2]) : 1;
-					$gamertags = [$args[1]];
-					static $per_page = 10;
-					$offset = ($page - 1) * $per_page;
-					$translation = current(yield from $this->getTranslator()->translateGamertagsAsync($gamertags));
-					if($translation !== false){
-						$entries = yield from $this->database->retrievePlayerAsync(Uuid::fromBytes($translation), $offset, $per_page);
-					}else{
-						$entries = [];
-					}
+	/**
+	 * @param WeakCommandSender $sender
+	 * @param string $gamertag
+	 * @param positive-int $page
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, void>
+	 */
+	private function sendHistory(WeakCommandSender $sender, string $gamertag, int $page) : Generator{
+		static $per_page = 10;
+		$offset = ($page - 1) * $per_page;
+		$translation = current(yield from $this->getTranslator()->translateGamertagsAsync([$gamertag]));
+		if($translation !== false){
+			$entries = yield from $this->database->retrievePlayerAsync(Uuid::fromBytes($translation), $offset, $per_page);
+		}else{
+			$entries = [];
+		}
 
-					/** @var DeathInventoryLog[] $entries */
-					if(count($entries) === 0){
-						$sender->sendMessage($page === 1 ? TextFormat::RED . "No logs found for that player." : TextFormat::RED . "No logs found on page {$page} for that player.");
-						return;
-					}
+		/** @var DeathInventoryLog[] $entries */
+		if(count($entries) === 0){
+			$sender->sendMessage($page === 1 ? TextFormat::RED . "No logs found for that player." : TextFormat::RED . "No logs found on page {$page} for that player.");
+		}else{
+			$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
+			foreach($entries as $entry){
+				$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->id} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d H:i:s", $entry->timestamp) . TextFormat::EOL;
+			}
+			$sender->sendMessage($message);
+		}
+		yield from $this->sleep();
+	}
 
-					$message = TextFormat::BOLD . TextFormat::RED . "Death Entries Page {$page}" . TextFormat::RESET . TextFormat::EOL;
-					foreach($entries as $entry){
-						$message .= TextFormat::BOLD . TextFormat::RED . ++$offset . ". " . TextFormat::RESET . TextFormat::WHITE . "#{$entry->id} " . TextFormat::GRAY . "logged on " . gmdate("Y-m-d H:i:s", $entry->timestamp) . TextFormat::EOL;
-					}
-					$sender->sendMessage($message);
-					return;
-				case "retrieve":
-					if(!isset($args[1])){
-						$sender->sendMessage(TextFormat::RED . "/{$label} {$args[0]} <id>");
-						return;
-					}
+	/**
+	 * @param WeakCommandSender<Player> $sender
+	 * @param int $id
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, void>
+	 */
+	private function sendContents(WeakCommandSender $sender, int $id) : Generator{
+		$log = yield from $this->database->retrieveAsync($id);
+		$sender_player = $sender->get();
+		if(!($sender_player instanceof Player)){
+			return;
+		}
 
-					$id = (int) $args[1];
-					$log = yield from $this->database->retrieveAsync($id);
-					$sender_player = $sender->get();
-					if(!($sender_player instanceof Player)){
-						$sender->sendMessage(TextFormat::RED . "This command can only be executed in-game.");
-						return;
-					}
+		if(!($log instanceof DeathInventoryLog)){
+			$sender->sendMessage(TextFormat::RED . "No death log with the id #{$id} could be found.");
+			yield from $this->sleep();
+			return;
+		}
 
-					if($log === null){
-						$sender->sendMessage(TextFormat::RED . "No death log with the id #{$id} could be found.");
-						return;
-					}
+		if(!$sender_player->hasPermission($this->permission_read_history_self) && $log->uuid->equals($sender_player->getUniqueId())){
+			$sender->sendMessage(TextFormat::RED . "You do not have permission to read this log.");
+			yield from $this->sleep();
+			return;
+		}
 
-					$sender->sendMessage(TextFormat::GRAY . "Retrieved death inventory log #{$log->id}");
+		if(!$sender_player->hasPermission($this->permission_read_history_others) && !$log->uuid->equals($sender_player->getUniqueId())){
+			$sender->sendMessage(TextFormat::RED . "You do not have permission to read this log.");
+			yield from $this->sleep();
+			return;
+		}
 
-					$items = $log->inventory->inventory_contents;
-
-					$armor_inventory = $log->inventory->armor_contents;
-					foreach([
-						ArmorInventory::SLOT_HEAD => 47,
-						ArmorInventory::SLOT_CHEST => 48,
-						ArmorInventory::SLOT_LEGS => 50,
-						ArmorInventory::SLOT_FEET => 51
-					] as $armor_inventory_slot => $menu_slot){
-						if(isset($armor_inventory[$armor_inventory_slot])){
-							$items[$menu_slot] = $armor_inventory[$armor_inventory_slot];
-						}
-					}
-
-					$items[53] = $log->inventory->offhand_contents[0] ?? VanillaItems::AIR();
-
-					$menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
-					$menu->setName("Death Inventory Log #{$log->id}");
-					$menu->getInventory()->setContents($items);
-					$menu->send($sender_player);
-					return;
+		$items = $log->inventory->inventory_contents;
+		$armor_inventory = $log->inventory->armor_contents;
+		foreach([
+			ArmorInventory::SLOT_HEAD => 47,
+			ArmorInventory::SLOT_CHEST => 48,
+			ArmorInventory::SLOT_LEGS => 50,
+			ArmorInventory::SLOT_FEET => 51
+		] as $armor_inventory_slot => $menu_slot){
+			if(isset($armor_inventory[$armor_inventory_slot])){
+				$items[$menu_slot] = $armor_inventory[$armor_inventory_slot];
 			}
 		}
 
-		$sender->sendMessage(
-			TextFormat::BOLD . TextFormat::RED . "Death Inventory Log Commands" . TextFormat::RESET . TextFormat::EOL .
-			TextFormat::WHITE . "/{$label} history <player> [page=1] " . TextFormat::GRAY . "Retrieve a player's death log history" . TextFormat::EOL .
-			TextFormat::WHITE . "/{$label} retrieve <id> " . TextFormat::GRAY . "Retrieve inventory contents of a specific death log"
-		);
+		$items[53] = $log->inventory->offhand_contents[0] ?? VanillaItems::AIR();
+
+		$menu = InvMenu::create(InvMenu::TYPE_DOUBLE_CHEST);
+		if(!$sender_player->hasPermission($this->permission_retrieve_contents)){
+			$menu->setListener(InvMenu::readonly());
+		}
+		$menu->setName("Death Inventory Log #{$log->id}");
+		$menu->getInventory()->setContents($items);
+
+		$sender->sendMessage(TextFormat::GRAY . "Retrieved death inventory log #{$log->id}");
+		yield from Await::promise(static fn($resolve) => $menu->send($sender_player, null, $resolve));
+		yield from $this->sleep();
 	}
 }

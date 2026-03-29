@@ -4,6 +4,16 @@ api: 5.41.0
 version: 1.0.4
 permissions:
   deathinventorylog.command:
+    description: Ability to use the command
+    default: true
+  deathinventorylog.read.self:
+    description: Ability to view own logs
+    default: true
+  deathinventorylog.read.other:
+    description: Ability to view other players logs
+    default: op
+  deathinventorylog.retrieve.contents:
+    description: Ability to retrieve inventory contents from logs
     default: op
 commands:
   deathinventorylog:
