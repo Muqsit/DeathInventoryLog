@@ -66,7 +66,7 @@ interface Database{
 	 * @param UuidInterface $player
 	 * @param int $offset
 	 * @param int $length
-	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, DeathInventoryLog[]>
+	 * @return Generator<mixed, Await::RESOLVE|Await::REJECT, void, list<DeathInventoryLog>>
 	 */
 	public function retrievePlayerAsync(UuidInterface $player, int $offset, int $length) : Generator;
 
